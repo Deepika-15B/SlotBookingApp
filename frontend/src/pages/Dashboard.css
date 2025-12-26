@@ -1,0 +1,120 @@
+.dashboard {
+  min-height: 100vh;
+  /* Background image applied via inline styles in components */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  position: relative;
+}
+
+.dashboard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 209, 220, 0.85) 0%, rgba(230, 230, 250, 0.85) 50%, rgba(181, 234, 215, 0.85) 100%);
+  z-index: 0;
+}
+
+.dashboard-nav {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 16px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 2px solid rgba(255, 209, 220, 0.3);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.nav-brand h2 {
+  color: #1a237e;
+  margin: 0;
+  font-weight: 700;
+}
+
+.role-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #FFB6C1 0%, #DDA0DD 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(255, 182, 193, 0.3);
+}
+
+.role-badge.user {
+  background: linear-gradient(135deg, #B5EAD7 0%, #C7E9C0 100%);
+  box-shadow: 0 2px 8px rgba(181, 234, 215, 0.3);
+}
+
+.nav-links {
+  display: flex;
+  gap: 12px;
+}
+
+.nav-link {
+  color: #1565c0;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.nav-link:hover {
+  background: linear-gradient(135deg, #FFD1DC 0%, #E6E6FA 100%);
+  color: #1a237e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 182, 193, 0.2);
+}
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.nav-user span {
+  color: #1565c0;
+  font-weight: 500;
+}
+
+.dashboard-content {
+  padding: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .dashboard-nav {
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px 20px;
+  }
+
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .dashboard-content {
+    padding: 15px;
+  }
+}
+
