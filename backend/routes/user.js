@@ -216,6 +216,29 @@ router.post('/slot-preferences/:id/register', auth, [
     slot.currentCount += 1;
     await slotPreference.save();
 
+    // Update user's responses
+    const user = await User.findById(req.user._id);
+    const existingResponseIndex = user.responses.findIndex(
+      r => r.question && r.question.toString() === slotPreference._id.toString() && r.questionType === 'SlotPreference'
+    );
+    
+    const responseData = {
+      question: slotPreference._id,
+      questionType: 'SlotPreference',
+      answer: slot.label,
+      submittedAt: new Date()
+    };
+    
+    if (existingResponseIndex >= 0) {
+      // Update existing response
+      user.responses[existingResponseIndex] = responseData;
+    } else {
+      // Add new response
+      user.responses.push(responseData);
+    }
+    
+    await user.save();
+
     // Emit real-time update
     const io = req.app.get('io');
     io.emit('slot-preference-update', {
@@ -322,14 +345,34 @@ router.post('/survey-questions/:id/respond', auth, [
     surveyQuestion.currentResponses += 1;
     await surveyQuestion.save();
 
-    // Update user's responses
-    await User.findByIdAndUpdate(req.user._id, {
-      $push: {
-        responses: {
-          question: surveyQuestion._id,
-          answer: answer
-        }
-      }
+    // Update user's responses - check if already exists first
+    const user = await User.findById(req.user._id);
+    const existingResponseIndex = user.responses.findIndex(
+      r => r.question && r.question.toString() === surveyQuestion._id.toString()
+    );
+    
+    const responseData = {
+      question: surveyQuestion._id,
+      questionType: 'SurveyQuestion',
+      answer: answer,
+      submittedAt: new Date()
+    };
+    
+    if (existingResponseIndex >= 0) {
+      // Update existing response
+      user.responses[existingResponseIndex] = responseData;
+    } else {
+      // Add new response
+      user.responses.push(responseData);
+    }
+    
+    await user.save();
+    
+    console.log('Response saved to user:', {
+      userId: req.user._id,
+      questionId: surveyQuestion._id,
+      answer: answer,
+      totalResponses: user.responses.length
     });
 
     // Emit real-time update
@@ -357,11 +400,71 @@ router.post('/survey-questions/:id/respond', auth, [
 // Get User's Responses
 router.get('/my-responses', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
-      .populate('responses.question');
-    res.json(user.responses);
+    const user = await User.findById(req.user._id);
+    
+    if (!user || !user.responses || user.responses.length === 0) {
+      return res.json([]);
+    }
+    
+    // Populate responses based on questionType
+    const populatedResponses = await Promise.all(
+      user.responses.map(async (response) => {
+        try {
+          let question = null;
+          
+          // Handle old responses without questionType (backward compatibility)
+          if (!response.questionType) {
+            // Try SurveyQuestion first
+            const SurveyQuestion = require('../models/SurveyQuestion');
+            question = await SurveyQuestion.findById(response.question);
+            
+            // If not found, try old Question model (for backward compatibility)
+            if (!question) {
+              try {
+                const Question = require('../models/Question');
+                question = await Question.findById(response.question);
+              } catch (err) {
+                // Question model might not exist, that's okay
+              }
+            }
+          } else if (response.questionType === 'SurveyQuestion') {
+            const SurveyQuestion = require('../models/SurveyQuestion');
+            question = await SurveyQuestion.findById(response.question);
+          } else if (response.questionType === 'SlotPreference') {
+            const SlotPreference = require('../models/SlotPreference');
+            question = await SlotPreference.findById(response.question);
+          }
+          
+          return {
+            _id: response._id,
+            question: question,
+            questionType: response.questionType || 'SurveyQuestion',
+            answer: response.answer,
+            submittedAt: response.submittedAt || response.createdAt || new Date()
+          };
+        } catch (err) {
+          console.error('Error populating response:', err);
+          // Return response even if question not found
+          return {
+            _id: response._id,
+            question: null,
+            questionType: response.questionType || 'SurveyQuestion',
+            answer: response.answer,
+            submittedAt: response.submittedAt || response.createdAt || new Date()
+          };
+        }
+      })
+    );
+    
+    // Filter out null responses and sort by submittedAt (newest first)
+    const validResponses = populatedResponses
+      .filter(r => r !== null)
+      .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    
+    res.json(validResponses);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Get responses error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

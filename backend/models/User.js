@@ -36,7 +36,12 @@ const userSchema = new mongoose.Schema({
   responses: [{
     question: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Question'
+      refPath: 'responses.questionType'
+    },
+    questionType: {
+      type: String,
+      enum: ['SurveyQuestion', 'SlotPreference'],
+      default: 'SurveyQuestion'
     },
     answer: String,
     submittedAt: {
